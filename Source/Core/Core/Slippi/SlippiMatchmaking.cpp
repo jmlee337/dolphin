@@ -6,6 +6,7 @@
 #include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
 #include "Common/Version.h"
+#include "Common/UPnP.h"
 #include "Core/Config/MainSettings.h"
 #include "Core/ConfigManager.h"
 
@@ -308,6 +309,11 @@ void SlippiMatchmaking::startMatchmaking()
     m_error_msg = "Failed to create mm client";
     ERROR_LOG_FMT(SLIPPI_ONLINE, "[Matchmaking] Failed to create client...");
     return;
+  }
+
+  if (Config::Get(Config::SLIPPI_ENABLE_UPNP))
+  {
+    UPnP::TryPortmappingBlocking(m_host_port);
   }
 
   ENetAddress addr;

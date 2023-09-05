@@ -171,6 +171,12 @@ void UPnP::TryPortmapping(u16 port)
   s_thread = std::thread(&MapPortThread, port);
 }
 
+void UPnP::TryPortmappingBlocking(u16 port)
+{
+  TryPortmapping(port);
+  s_thread.join();
+}
+
 void UPnP::StopPortmapping()
 {
   if (s_thread.joinable())
