@@ -4,6 +4,7 @@
 #include "Common/Common.h"
 #include "Common/ENetUtil.h"
 #include "Common/Logging/Log.h"
+#include "Common/NATPMP.h"
 #include "Common/StringUtil.h"
 #include "Common/Version.h"
 #include "Common/UPnP.h"
@@ -311,10 +312,17 @@ void SlippiMatchmaking::startMatchmaking()
     return;
   }
 
-  if (Config::Get(Config::SLIPPI_ENABLE_UPNP))
+  Slippi::PortMapping portMapping = Config::Get(Config::SLIPPI_PORT_MAPPING);
+  if (portMapping == Slippi::PortMapping::NATPMP)
+  {
+    NATPMP::TryPortmappingBlocking(m_host_port);
+  }
+#ifdef USE_UPNP
+  else if (portMapping == Slippi::PortMapping::UPNP)
   {
     UPnP::TryPortmappingBlocking(m_host_port);
   }
+#endif
 
   ENetAddress addr;
   enet_address_set_host(&addr, MM_HOST.c_str());
