@@ -94,8 +94,8 @@ add_library(common
   MsgHandler.h
   NandPaths.cpp
   NandPaths.h
-	NATPMP.cpp
-	NATPMP.h
+  NATPMP.cpp
+  NATPMP.h
   Network.cpp
   Network.h
   PcapFile.cpp
@@ -156,7 +156,7 @@ PUBLIC
   fmt::fmt
   ${MBEDTLS_LIBRARIES}
   minizip-ng
-	natpmp
+  natpmp
   slippi_rust_extensions
 
 PRIVATE
