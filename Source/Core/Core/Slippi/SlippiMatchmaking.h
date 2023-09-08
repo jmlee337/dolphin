@@ -92,8 +92,6 @@ protected:
 
   SlippiUser* m_user;
 
-  int m_is_swap_attempt = false;
-
   int m_host_port;
   int m_local_player_idx;
   std::vector<std::string> m_remote_ips;

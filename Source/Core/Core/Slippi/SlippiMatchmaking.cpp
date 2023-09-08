@@ -515,7 +515,6 @@ void SlippiMatchmaking::handleMatchmaking()
     return;
   }
 
-  m_is_swap_attempt = false;
   m_netplay_client = nullptr;
 
   // Clear old users
@@ -677,7 +676,6 @@ void SlippiMatchmaking::handleConnecting()
 {
   auto user_info = m_user->GetUserInfo();
 
-  m_is_swap_attempt = false;
   m_netplay_client = nullptr;
 
   u8 remote_player_count = (u8)m_remote_ips.size();
