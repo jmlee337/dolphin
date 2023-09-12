@@ -130,6 +130,12 @@ struct ChecksumEntry
   u32 value;
 };
 
+struct RemotePlayer
+{
+  u8 index; // port - 1
+  ENetAddress address;
+};
+
 class SlippiMatchInfo
 {
 public:
@@ -153,8 +159,7 @@ public:
   void SendAsync(std::unique_ptr<sf::Packet> packet);
 
   SlippiNetplayClient(bool is_decider);  // Make a dummy client
-  SlippiNetplayClient(std::vector<std::string> addrs, std::vector<u16> ports,
-                      const u8 remote_player_count, const u16 local_port, bool is_decider,
+  SlippiNetplayClient(std::vector<struct RemotePlayer> remote_players, const u16 local_port, bool is_decider,
                       u8 player_idx);
   ~SlippiNetplayClient();
 

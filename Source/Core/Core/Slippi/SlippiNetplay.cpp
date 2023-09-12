@@ -56,8 +56,7 @@ SlippiNetplayClient::~SlippiNetplayClient()
 }
 
 // called from ---SLIPPI EXI--- thread
-SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::vector<u16> ports,
-                                         const u8 remote_player_count, const u16 local_port,
+SlippiNetplayClient::SlippiNetplayClient(std::vector<struct RemotePlayer> remote_players, const u16 local_port,
                                          bool is_decider, u8 player_idx)
 #ifdef _WIN32
     : m_qos_handle(nullptr), m_qos_flow_id(0)
@@ -67,7 +66,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
                is_decider ? "true" : "false");
 
   this->is_decider = is_decider;
-  this->m_remote_player_count = remote_player_count;
+  this->m_remote_player_count = static_cast<u8>(remote_players.size());
   this->m_player_idx = player_idx;
 
   // Set up remote player data structures.
@@ -115,11 +114,9 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
     PanicAlertFmtT("Couldn't Create Client");
   }
 
-  for (int i = 0; i < remote_player_count; i++)
+  for (auto remote_player : remote_players)
   {
-    ENetAddress addr;
-    enet_address_set_host(&addr, addrs[i].c_str());
-    addr.port = ports[i];
+    auto addr = remote_player.address;
     // INFO_LOG_FMT(SLIPPI_ONLINE, "Set ENet host, addr = {}, port = {}", addr.host, addr.port);
 
     ENetPeer* peer = enet_host_connect(m_client, &addr, 3, 0);
