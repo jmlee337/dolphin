@@ -94,6 +94,7 @@ protected:
 
   int m_host_port;
   int m_local_player_idx;
+  enet_uint32 m_local_player_external_host;
   std::vector<struct RemotePlayer> m_remote_players;
   MatchmakeResult m_mm_result;
   std::vector<SlippiUser::UserInfo> m_player_info;

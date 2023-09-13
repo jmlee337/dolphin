@@ -56,7 +56,7 @@ SlippiNetplayClient::~SlippiNetplayClient()
 }
 
 // called from ---SLIPPI EXI--- thread
-SlippiNetplayClient::SlippiNetplayClient(std::vector<struct RemotePlayer> remote_players, const u16 local_port,
+SlippiNetplayClient::SlippiNetplayClient(std::vector<struct RemotePlayer> remote_players, enet_uint32 own_external_host, const u16 local_port,
                                          bool is_decider, u8 player_idx)
 #ifdef _WIN32
     : m_qos_handle(nullptr), m_qos_flow_id(0)
@@ -116,7 +116,9 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<struct RemotePlayer> remote
 
   for (auto remote_player : remote_players)
   {
-    auto addr = remote_player.address;
+    auto addr = own_external_host == remote_player.external_address.host ?
+                    remote_player.local_address :
+                    remote_player.external_address;
     // INFO_LOG_FMT(SLIPPI_ONLINE, "Set ENet host, addr = {}, port = {}", addr.host, addr.port);
 
     ENetPeer* peer = enet_host_connect(m_client, &addr, 3, 0);
