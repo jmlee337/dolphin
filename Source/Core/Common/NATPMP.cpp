@@ -1,6 +1,7 @@
 #include "Common/NATPMP.h"
 #include "Common/Logging/Log.h"
 #include <natpmp.h>
+#include <thread>
 
 #ifndef _WIN32
 #include <arpa/inet.h>
