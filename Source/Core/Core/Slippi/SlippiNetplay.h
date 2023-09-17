@@ -7,13 +7,13 @@
 #include <SFML/Network/Packet.hpp>
 #include <array>
 #include <deque>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <queue>
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "Common/CommonTypes.h"
@@ -247,7 +247,7 @@ protected:
   bool has_game_started = false;
   u8 m_player_idx = 0;
 
-  std::unordered_map<std::string, std::map<ENetPeer*, bool>> m_active_connections;
+  std::unordered_map<std::string, std::unordered_set<ENetPeer*>> m_active_connections;
 
   std::deque<std::unique_ptr<SlippiPad>> m_local_pad_queue;  // most recent inputs at start of deque
   std::deque<std::unique_ptr<SlippiPad>>

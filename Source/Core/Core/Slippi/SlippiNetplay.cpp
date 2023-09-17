@@ -127,7 +127,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<struct RemotePlayer> remote
     // Store this connection
     std::stringstream key_strm;
     key_strm << addr.host << "-" << addr.port;
-    m_active_connections[key_strm.str()][peer] = true;
+    m_active_connections[key_strm.str()].insert(peer);
     INFO_LOG_FMT(SLIPPI_ONLINE, "New connection (constr): {}", key_strm.str());
 
     if (peer == nullptr)
@@ -255,11 +255,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet& packet, ENetPeer* peer)
 
       for (auto active_conn : m_active_connections[key_strm.str()])
       {
-        if (active_conn.first == peer)
+        if (active_conn == peer)
           continue;
 
         // Tell our peer to terminate this connection
-        enet_peer_disconnect(active_conn.first, 0);
+        enet_peer_disconnect(active_conn, 0);
       }
     }
 
@@ -686,8 +686,8 @@ void SlippiNetplayClient::Disconnect()
   {
     for (auto peer : conn.second)
     {
-      INFO_LOG_FMT(SLIPPI_ONLINE, "[Netplay] Disconnecting peer {}", peer.first->address.port);
-      enet_peer_disconnect(peer.first, 0);
+      INFO_LOG_FMT(SLIPPI_ONLINE, "[Netplay] Disconnecting peer {}", peer->address.port);
+      enet_peer_disconnect(peer, 0);
     }
   }
 
@@ -711,7 +711,7 @@ void SlippiNetplayClient::Disconnect()
   {
     for (auto peer : conn.second)
     {
-      enet_peer_reset(peer.first);
+      enet_peer_reset(peer);
     }
   }
   m_active_connections.clear();
@@ -788,7 +788,7 @@ void SlippiNetplayClient::ThreadFunc()
 
         std::stringstream key_strm;
         key_strm << net_event.peer->address.host << "-" << net_event.peer->address.port;
-        m_active_connections[key_strm.str()][net_event.peer] = true;
+        m_active_connections[key_strm.str()].insert(net_event.peer);
         INFO_LOG_FMT(SLIPPI_ONLINE, "New connection (early): {}", key_strm.str().c_str());
 
         INFO_LOG_FMT(SLIPPI_ONLINE, "[Netplay] got connect event with peer addr {}:{}",
@@ -1007,7 +1007,7 @@ void SlippiNetplayClient::ThreadFunc()
       {
         std::stringstream key_strm;
         key_strm << net_event.peer->address.host << "-" << net_event.peer->address.port;
-        m_active_connections[key_strm.str()][net_event.peer] = true;
+        m_active_connections[key_strm.str()].insert(net_event.peer);
         INFO_LOG_FMT(SLIPPI_ONLINE, "New connection (late): {}", key_strm.str().c_str());
         break;
       }
