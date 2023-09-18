@@ -116,28 +116,28 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<struct RemotePlayer> remote
 
   for (auto remote_player : remote_players)
   {
-    auto addr = own_external_host == remote_player.external_address.host ?
-                    remote_player.local_address :
-                    remote_player.external_address;
-    // INFO_LOG_FMT(SLIPPI_ONLINE, "Set ENet host, addr = {}, port = {}", addr.host, addr.port);
-
-    ENetPeer* peer = enet_host_connect(m_client, &addr, 3, 0);
-    m_server.push_back(peer);
-
-    // Store this connection
-    std::stringstream key_strm;
-    key_strm << addr.host << "-" << addr.port;
-    m_active_connections[key_strm.str()].insert(peer);
-    INFO_LOG_FMT(SLIPPI_ONLINE, "New connection (constr): {}", key_strm.str());
-
-    if (peer == nullptr)
+    for (auto addr : { remote_player.local_address, remote_player.external_address })
     {
-      PanicAlertFmtT("Couldn't create peer.");
-    }
-    else
-    {
-      /*INFO_LOG_FMT(SLIPPI_ONLINE, "Connecting to ENet host, addr = {}, port = {}",
-                   peer->address.host, peer->address.port);*/
+      // INFO_LOG_FMT(SLIPPI_ONLINE, "Set ENet host, addr = {}, port = {}", addr.host, addr.port);
+      ENetPeer* peer = enet_host_connect(m_client, &addr, 3, 0);
+      m_server.push_back(peer);
+
+      // Store this connection
+      std::stringstream key_strm;
+      key_strm << addr.host << "-" << addr.port;
+      m_endpoint_to_index[key_strm.str()] = remote_player.index;
+      m_index_to_peers[remote_player.index].insert(peer);
+      INFO_LOG_FMT(SLIPPI_ONLINE, "New connection (constr): {}", key_strm.str());
+
+      if (peer == nullptr)
+      {
+        PanicAlertFmtT("Couldn't create peer.");
+      }
+      else
+      {
+        /*INFO_LOG_FMT(SLIPPI_ONLINE, "Connecting to ENet host, addr = {}, port = {}",
+                     peer->address.host, peer->address.port);*/
+      }
     }
   }
 
@@ -242,9 +242,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet& packet, ENetPeer* peer)
     // one direction might work and for hole punching. That said there's no point in keeping more
     // than 1 connection alive. I think they might use bandwidth with keep alives or something. Only
     // the lower port player will initiate the disconnect
-    std::stringstream key_strm;
-    key_strm << peer->address.host << "-" << peer->address.port;
-    if (m_active_connections[key_strm.str()].size() > 1 && m_player_idx <= p_idx)
+    if (m_index_to_peers[packet_player_port].size() > 1 && m_player_idx <= p_idx)
     {
       m_server[conn_idx] = peer;
       INFO_LOG_FMT(
@@ -253,7 +251,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet& packet, ENetPeer* peer)
           "connections. oppIdx: {}. p_idx: {}",
           peer->address.host, peer->address.port, p_idx, m_player_idx);
 
-      for (auto active_conn : m_active_connections[key_strm.str()])
+      for (auto active_conn : m_index_to_peers[packet_player_port])
       {
         if (active_conn == peer)
           continue;
@@ -679,10 +677,10 @@ void SlippiNetplayClient::Disconnect()
 {
   ENetEvent net_event;
   slippi_connect_status = SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
-  if (m_active_connections.empty())
+  if (m_index_to_peers.empty())
     return;
 
-  for (auto conn : m_active_connections)
+  for (auto conn : m_index_to_peers)
   {
     for (auto peer : conn.second)
     {
@@ -707,14 +705,15 @@ void SlippiNetplayClient::Disconnect()
     }
   }
   // didn't disconnect gracefully force disconnect
-  for (auto conn : m_active_connections)
+  for (auto conn : m_index_to_peers)
   {
     for (auto peer : conn.second)
     {
       enet_peer_reset(peer);
     }
   }
-  m_active_connections.clear();
+  m_endpoint_to_index.clear();
+  m_index_to_peers.clear();
   m_server.clear();
   SLIPPI_NETPLAY = nullptr;
 }
@@ -788,7 +787,8 @@ void SlippiNetplayClient::ThreadFunc()
 
         std::stringstream key_strm;
         key_strm << net_event.peer->address.host << "-" << net_event.peer->address.port;
-        m_active_connections[key_strm.str()].insert(net_event.peer);
+        u8 index = m_endpoint_to_index[key_strm.str()];
+        m_index_to_peers[index].insert(net_event.peer);
         INFO_LOG_FMT(SLIPPI_ONLINE, "New connection (early): {}", key_strm.str().c_str());
 
         INFO_LOG_FMT(SLIPPI_ONLINE, "[Netplay] got connect event with peer addr {}:{}",
@@ -971,7 +971,8 @@ void SlippiNetplayClient::ThreadFunc()
       {
         std::stringstream key_strm;
         key_strm << net_event.peer->address.host << "-" << net_event.peer->address.port;
-        m_active_connections[key_strm.str()].erase(net_event.peer);
+        u8 index = m_endpoint_to_index[key_strm.str()];
+        m_index_to_peers[index].erase(net_event.peer);
 
         // Check to make sure this address+port are one of the ones we are actually connected to.
         // When connecting to someone that randomizes ports, you can get one valid connection from
@@ -992,11 +993,11 @@ void SlippiNetplayClient::ThreadFunc()
             SLIPPI_ONLINE,
             "[Netplay] Disconnect late {}:{}. Remaining connections: {}. Is connected client: {}",
             net_event.peer->address.host, net_event.peer->address.port,
-            m_active_connections[key_strm.str()].size(), is_connected_client ? "true" : "false");
+            m_index_to_peers[index].size(), is_connected_client ? "true" : "false");
 
         // If the disconnect event doesn't come from the client we are actually listening to,
         // it can be safely ignored
-        if (is_connected_client && m_active_connections[key_strm.str()].empty())
+        if (is_connected_client && m_index_to_peers[index].empty())
         {
           INFO_LOG_FMT(SLIPPI_ONLINE, "[Netplay] Final disconnect received for a client.");
           m_do_loop.Clear();  // Stop the loop, will trigger a disconnect
@@ -1007,7 +1008,8 @@ void SlippiNetplayClient::ThreadFunc()
       {
         std::stringstream key_strm;
         key_strm << net_event.peer->address.host << "-" << net_event.peer->address.port;
-        m_active_connections[key_strm.str()].insert(net_event.peer);
+        u8 index = m_endpoint_to_index[key_strm.str()];
+        m_index_to_peers[index].insert(net_event.peer);
         INFO_LOG_FMT(SLIPPI_ONLINE, "New connection (late): {}", key_strm.str().c_str());
         break;
       }

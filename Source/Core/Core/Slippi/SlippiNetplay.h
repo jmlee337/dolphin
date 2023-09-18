@@ -247,7 +247,8 @@ protected:
   bool has_game_started = false;
   u8 m_player_idx = 0;
 
-  std::unordered_map<std::string, std::unordered_set<ENetPeer*>> m_active_connections;
+  std::unordered_map<std::string, u8> m_endpoint_to_index;
+  std::unordered_map<u8, std::unordered_set<ENetPeer*>> m_index_to_peers;
 
   std::deque<std::unique_ptr<SlippiPad>> m_local_pad_queue;  // most recent inputs at start of deque
   std::deque<std::unique_ptr<SlippiPad>>
